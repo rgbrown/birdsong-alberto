@@ -1,0 +1,18 @@
+#!/bin/sh
+currentdir=$(pwd)
+
+# Get filename
+cd $(dirname $1)
+pwd
+fname=$(basename $1)
+prefix=$(echo $fname | cut -d'.' -f1)
+
+mkdir -p wav/$prefix
+for i in {1..7} 
+do
+    #touch wav/$fname/channel-$i.wav
+    echo writing channel $i ...
+    python -m audacity --channel $i --bitdepth 32 $fname wav/$prefix/channel-$i.wav
+done
+
+cd $currentdir
