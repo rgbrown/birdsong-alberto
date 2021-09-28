@@ -59,8 +59,6 @@ if __name__ == "__main__":
         data.append(x)
     data = np.array(data).T
     n_data = len(x)
-    print(data.shape)
-    print(n_data)
 
     # Set up the camera array positions
     positions = 1e-3*np.array([

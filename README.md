@@ -23,4 +23,10 @@ a directory containing the 7 wav files entitled `channel-1.wav` through to
 `--speedofsound : the speed of sound (default 343)
 
 It will produce two plots. One of the 7 waveforms, and one of the estimated
-strength in each direction. By default the resolution is $1%\circ$.
+strength in each direction. By default the resolution is 1 degree.
+
+So you might run it like:
+
+    ./gcc-phat.py --start 1005 2019-02-21/wav/e
+
+If you wanted to start 1005 seconds in, and your wavefiles were in the directory `2019-02-21/wav/e`
