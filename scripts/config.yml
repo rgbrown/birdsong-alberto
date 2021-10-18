@@ -1,0 +1,39 @@
+# Coordinates of the UMA8 microphone array, in order. 
+# Positive x-axis is east, positive y-axis is north
+# Orientation of 0 (degrees) corresponds to the USB point pointing to the south
+coordinates: [
+  [0, 0],
+  [42.6e-3, -0.5e-3], 
+  [21.5e-3, -37.7e-3],
+  [-21.2e-3, -37.7e-3], 
+  [-42.3e-3, -0.8e-3],
+  [-21.2e-3, 35.8e-3],
+  [21.4e-3, 36.2e-3],
+]
+
+# This is hard-coded in for now, as this is the same for all experiments
+array_orientations: {
+  'w': 180, # i.e. USB ports north
+  'c': 180,
+  'e': 180
+}
+array_positions: {
+  'w': [-50, 0],
+  'c': [0, 0],
+  'e': [50, 0]
+}
+
+speed_of_sound: 343 #m/s
+window: 2 #s (how long a window to use)
+
+# CSV files from Albert detailing the experiments
+data_dir: 'data'
+experiment_file: 'data/metaminidsp.csv'
+sound_offsets_file: 'data/residualsfrom10.csv'
+num_channels: 7
+channel_prefix: "channel-"
+wav_dir: "wav"
+
+# Experiment index to process
+experiment_id: 29
+sound_id: 9 
