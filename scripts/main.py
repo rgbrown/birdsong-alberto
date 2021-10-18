@@ -3,12 +3,15 @@ import yaml
 import csv
 import wave
 import numpy as np
+import scipy.fft as fft
 import matplotlib.pyplot as plt
 from yaml import CLoader as Loader
 
 class MicrophoneArray:
-    def __init__(self, coordinates):
+    def __init__(self, coordinates, centre, c_sound=343):
         self.coordinates = coordinates
+        self.centre = centre
+        self.c_sound = c_sound
 
     def load_data(self, dir, start, length, prefix, num_channels):
         data = []
@@ -39,6 +42,32 @@ class MicrophoneArray:
         self.data = np.array(data).T
         self.n_frames = len(x)
 
+    def delay_time(self, theta, pos, c):
+        x = [pos[0] - self.centre[0], pos[1] - self.centre[1]]
+        return -(x[0]*np.cos(theta) + x[1]*np.sin(theta))/self.c_sound
+
+    def delay_sample(self, theta, pos, c):
+        return self.fs*self.delay_time(theta, pos, c)
+
+    def gcc_phat(self, pairs, pos):
+        # Calculate angles of arrival
+        x = pos
+        theta = np.arctan2(x[1] - self.centre[1], x[0] - self.centre[0])
+    
+        npairs = len(pairs)
+        cc = []
+        for k in range(npairs):
+            i1, i2 = pairs[k]
+            R = self.U[i1]*np.conj(self.U[i2])
+            R = R/np.abs(R)
+            foo = fft.irfft(R)
+            d1 = -self.delay_sample(theta, self.coordinates[i1], self.c_sound) 
+            d2 = self.delay_sample(theta, self.coordinates[i2], self.c_sound)
+            idx = d1 + d2
+            cc.append(foo[(idx.round()).astype(int)])
+        return np.array(cc).T
+
+
 # This is going to be the do-everything script. 
 def load_experiment_details(config):
     with open(config['experiment_file']) as csvfile:
@@ -67,10 +96,10 @@ def construct_mic_arrays(config, details):
 
         # Fix the orientation
         R = np.array([[c, -s], [s, c]])
-        pos = np.dot(x, R.T) + np.array(config['array_positions'][key])
-        arr[key] = MicrophoneArray(pos)
+        centre = np.array(config['array_positions'][key])
+        pos = np.dot(x, R) + centre # Using the inverse of R, but multiplying on right, means R is what we have
+        arr[key] = MicrophoneArray(pos, centre, c_sound=config['speed_of_sound'])
     return arr
-
 
 
 
@@ -95,23 +124,35 @@ dirs = {}
 start = {}
 
 aupfiles = {'c': 'path C', 'e': 'path E', 'w': 'path W'}
+times = {'c': 'time C', 'e': 'time E', 'w': 'time W'}
 for key in ['c', 'e', 'w']:
     aupfile = os.path.join(config['data_dir'], details[aupfiles[key]])
     base, fname = os.path.split(aupfile)
     fname_base, ext = os.path.splitext(fname)
     dirs[key] = os.path.join(base, config['wav_dir'], fname_base)
+    start[key] = float(details[times[key]]) - offset
 
-start['c'] = float(details['time C']) - offset
-start['e'] = float(details['time E']) - offset
-start['w'] = float(details['time W']) - offset
-
+plt.figure(1)
 for key in ['e', 'c', 'w']:
     m = mic_arrays[key]
     m.load_data(dirs[key], start[key], length, config['channel_prefix'], config['num_channels'])
-    t = length * m.fs * np.arange(m.n_frames)
+    t = 1/m.fs * np.arange(m.n_frames)
     plt.plot(t, mic_arrays[key].data[:,0])
 #    def load_data(self, dir, start, length, prefix, num_channels):
 
+m = mic_arrays['c']
+x = np.arange(-75, 76, 1)
+y = np.arange(-50, 51, 1)
+X, Y = np.meshgrid(x, y)
+cc = {}
+for key in ['e', 'c', 'w']:
+    m = mic_arrays[key]
+    cc[key]  = m.gcc_phat(config['pairs'], [X, Y])
+
+cc = np.concatenate((cc['c'], cc['e'], cc['w']), axis=2)
+hm = 1/np.sum(1/np.abs(cc), 2)
+plt.figure(2)
+plt.imshow(np.sum(cc, 2).T, origin='lower', extent=[-75.5, 75.5, -50.5, 50.5])
 
 print(details)
 plt.show()

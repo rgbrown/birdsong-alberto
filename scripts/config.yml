@@ -33,7 +33,7 @@ array_positions: {
 }
 
 speed_of_sound: 343 #m/s
-window: 1 #s (how long a window to use)
+window: 20 #s (how long a window to use)
 
 # CSV files from Albert detailing the experiments
 data_dir: 'data'
@@ -45,4 +45,4 @@ wav_dir: "wav"
 
 # Experiment index to process
 experiment_id: 29
-sound_id: 9 
+sound_id: 1 
