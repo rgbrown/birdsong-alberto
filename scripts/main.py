@@ -37,17 +37,25 @@ class MicrophoneArray:
 
             frames = fd.readframes(round(length*self.fs))
             x = np.frombuffer(frames, dtype=datatype)/maxval
+
+            # Process data
+            # Remove mean
+            x -= np.mean(x)
+
+            # Zero pad
+            x = np.concatenate((x, np.zeros(100)))
+            
             data.append(x)
             self.U.append(fft.rfft(x))
         self.data = np.array(data).T
         self.n_frames = len(x)
 
-    def delay_time(self, theta, pos, c):
+    def delay_time(self, theta, pos):
         x = [pos[0] - self.centre[0], pos[1] - self.centre[1]]
         return -(x[0]*np.cos(theta) + x[1]*np.sin(theta))/self.c_sound
 
-    def delay_sample(self, theta, pos, c):
-        return self.fs*self.delay_time(theta, pos, c)
+    def delay_sample(self, theta, pos):
+        return self.fs*self.delay_time(theta, pos)
 
     def gcc_phat(self, pairs, pos):
         # Calculate angles of arrival
@@ -61,8 +69,8 @@ class MicrophoneArray:
             R = self.U[i1]*np.conj(self.U[i2])
             R = R/np.abs(R)
             foo = fft.irfft(R)
-            d1 = -self.delay_sample(theta, self.coordinates[i1], self.c_sound) 
-            d2 = self.delay_sample(theta, self.coordinates[i2], self.c_sound)
+            d1 = self.delay_sample(theta, self.coordinates[i1]) 
+            d2 = -self.delay_sample(theta, self.coordinates[i2])
             idx = d1 + d2
             cc.append(foo[(idx.round()).astype(int)])
         return np.array(cc).T
@@ -110,13 +118,9 @@ with open('scripts/config.yml') as configfile:
 
 # Load the microphone arrays
 details, offset = load_experiment_details(config)
-print(offset)
 
 # Now construct the arrays
 mic_arrays = construct_mic_arrays(config, details)
-
-for key in mic_arrays:
-    print(mic_arrays[key].coordinates)
 
 num_channels = config['num_channels']
 length = config['window']
