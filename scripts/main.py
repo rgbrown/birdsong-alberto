@@ -51,6 +51,7 @@ class MicrophoneArray:
         self.n_frames = len(x)
 
     def delay_time(self, theta, pos):
+        
         x = [pos[0] - self.centre[0], pos[1] - self.centre[1]]
         return -(x[0]*np.cos(theta) + x[1]*np.sin(theta))/self.c_sound
 
@@ -75,9 +76,8 @@ class MicrophoneArray:
             cc.append(foo[(idx.round()).astype(int)])
         return np.array(cc).T
 
-
-# This is going to be the do-everything script. 
 def load_experiment_details(config):
+    """Load the relevant experiment details and offset from file"""
     with open(config['experiment_file']) as csvfile:
         reader = csv.DictReader(csvfile)
         rows = []
@@ -87,6 +87,7 @@ def load_experiment_details(config):
     with open(config['sound_offsets_file']) as csvfile:
         reader = csv.reader(csvfile)
         offsets = []
+        # Strip off the header row
         header = next(reader)
         for row in reader:
             offsets.append(float(row[0]))
@@ -95,9 +96,10 @@ def load_experiment_details(config):
     return rows[config['experiment_id']], offset
 
 def construct_mic_arrays(config, details):
+    """Construct microphone arrays from provided details"""
     arr = {}
     x = np.array(config['coordinates'])
-    for key in ['w', 'c', 'e']:
+    for key in config['keys']:
         theta = config['array_orientations'][key]*np.pi/180
         c = np.cos(theta)
         s = np.sin(theta)
@@ -118,18 +120,21 @@ with open('scripts/config.yml') as configfile:
 
 # Load the microphone arrays
 details, offset = load_experiment_details(config)
+# Or, just load offset directly
+offset = -config['sound_offset']
 
 # Now construct the arrays
 mic_arrays = construct_mic_arrays(config, details)
 
 num_channels = config['num_channels']
 length = config['window']
+keys = config['keys']
 dirs = {}
 start = {}
 
 aupfiles = {'c': 'path C', 'e': 'path E', 'w': 'path W'}
 times = {'c': 'time C', 'e': 'time E', 'w': 'time W'}
-for key in ['c', 'e', 'w']:
+for key in keys: # keys is a subset of ['w', 'c', 'e']
     aupfile = os.path.join(config['data_dir'], details[aupfiles[key]])
     base, fname = os.path.split(aupfile)
     fname_base, ext = os.path.splitext(fname)
@@ -137,26 +142,36 @@ for key in ['c', 'e', 'w']:
     start[key] = float(details[times[key]]) - offset
 
 plt.figure(1)
-for key in ['e', 'c', 'w']:
+i_subplot = 1
+for key in keys:
     m = mic_arrays[key]
     m.load_data(dirs[key], start[key], length, config['channel_prefix'], config['num_channels'])
     t = 1/m.fs * np.arange(m.n_frames)
-    plt.plot(t, mic_arrays[key].data[:,0])
-#    def load_data(self, dir, start, length, prefix, num_channels):
+    # Plot waveform from centre channel
+    plt.subplot(1,len(keys),i_subplot)
+    plt.plot(t, mic_arrays[key].data)
+    i_subplot += 1
 
-m = mic_arrays['c']
 x = np.arange(-75, 76, 1)
 y = np.arange(-50, 51, 1)
 X, Y = np.meshgrid(x, y)
 cc = {}
-for key in ['e', 'c', 'w']:
+for key in keys:
     m = mic_arrays[key]
-    cc[key]  = m.gcc_phat(config['pairs'], [X, Y])
+    # Calculate GCC-PHAT values for each pair from current mic array. Don't
+    # combine them yet
+    cc[key] = m.gcc_phat(config['pairs'], [X, Y])
 
-cc = np.concatenate((cc['c'], cc['e'], cc['w']), axis=2)
-hm = 1/np.sum(1/np.abs(cc), 2)
+cc = np.concatenate([cc[key] for key in keys], axis=2)
+img = (1/np.sum(1/np.abs(cc), 2)).T
 plt.figure(2)
-plt.imshow(np.sum(cc, 2).T, origin='lower', extent=[-75.5, 75.5, -50.5, 50.5])
+plt.imshow(img, origin='lower', extent=[-75.5, 75.5, -50.5, 50.5])
+
+# Find the maximum
+idx = np.unravel_index(img.argmax(), img.shape)
+print(idx)
+plt.plot(x[idx[1]], y[idx[0]], 'ro')
+
 
 print(details)
 plt.show()

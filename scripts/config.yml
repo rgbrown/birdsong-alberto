@@ -11,7 +11,7 @@ coordinates: [
   [21.4e-3, 36.2e-3],
 ]
 
-# Which microphone pairs to use in GCC-PHAT
+# Which microphone pairs to use in GCC-PHAT (within a single array)
 pairs: [
   [0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], 
   [1, 2], [1, 3], [1, 4], [1, 5], [1, 6], 
@@ -20,12 +20,25 @@ pairs: [
   [4, 5], [4, 6],
   [5, 6]
 ]
+# pairs: [
+#   [0, 1], [0, 3], [0, 5],
+#   [1, 3], [1, 5], 
+#   [3, 5]
+# ]
+
+# Which arrays to use (chosen from 'w', 'c', 'e')
+# keys: ['c', 'w', 'e']
+keys: ['c']
+# keys: ['w']
+# keys: ['e', 'c']
+# keys: ['w', 'c']
+# keys: ['e', 'w', 'c']
 
 # Rotation angle in degrees. 0 corresponds to USB ports facing south
 array_orientations: {
   'w': 180, # i.e. USB ports north
   'c': 180,
-  'e': 180
+  'e': 180 
 }
 array_positions: {
   'w': [-50, 0],
@@ -34,16 +47,20 @@ array_positions: {
 }
 
 speed_of_sound: 343 #m/s
-window: 1 #s (how long a window to use)
+window: 0.02 #s (how long a window to use)
 
-# CSV files from Albert detailing the experiments
+# CSV files from Alberto detailing the experiments
 data_dir: 'data'
 experiment_file: 'data/metaminidsp.csv'
 sound_offsets_file: 'data/residualsfrom10.csv'
 num_channels: 7
 channel_prefix: "channel-"
+# wav_dir is the name of the directory inside the data set e.g. would be 2019fe2019/wav
 wav_dir: "wav"
 
 # Experiment index to process
-experiment_id: 29
-sound_id: 9 
+experiment_id: 11 # Index into the CSV file row
+# 9 should be the reference sound (10th one)
+sound_id: 9  # Index into the offsets for different sounds within the experiments
+sound_offset: 53.5 # Offset from 10th sound in seconds (postive is delayed)
+  
